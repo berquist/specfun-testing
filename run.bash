@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-set -v
+#set -v
 
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 HOST=$(hostname)
@@ -19,31 +19,38 @@ if [[ "$HOST" == "dellman4" ]]; then
 elif [[ "$HOST" == "coreman4" ]]; then
     modules=(llvm-11.0.0-gcc-7.5.0-lix6xtm intel-oneapi-compilers-2021.1.0-gcc-9.3.0-4zfjnvr)
 elif [[ "$HOST" == "osmium" ]]; then
-    modules=(gcc-9.2.0-gcc-8.4.0-fvtn24p gcc-9.3.0-gcc-10.1.0-vptvs3i llvm-11.0.1-gcc-10.2.0-hbzie7q aocc-2.3.0-gcc-10.2.0-3y5aifd)
+    modules=(gcc-5.5.0-gcc-10.2.0-b2izpgj gcc-9.2.0-gcc-8.4.0-fvtn24p gcc-9.3.0-gcc-10.1.0-vptvs3i llvm-11.0.1-gcc-10.2.0-hbzie7q aocc-2.3.0-gcc-10.2.0-3y5aifd)
 else
     modules=()
 fi
 
+cmakemod="cmake-3.19.2-gcc-5.5.0-pemyvhq"
+
 for module in ${modules[@]}; do
     module load ${module}
+
+    if [[ "$HOST" == "osmium" ]] && [[ "$module" =~ "gcc-5" ]]; then
+        module load "$cmakemod"
+    fi
+
+    if [[ "$module" =~ "intel-oneapi" ]]; then
+        CXX=icpx
+    elif [[ "$module" =~ "intel" ]]; then
+        CXX=icpc
+    elif [[ "$module" =~ "llvm" ]] || [[ "$module" =~ "aocc" ]]; then
+        CXX=clang++
+    elif [[ "$module" =~ "gcc" ]] || [[ "$module" =~ "gnu" ]]; then
+        CXX=g++
+    else
+        exit 99
+    fi
+
     for std in 98 11 17; do
         if [[ -d "${builddir}" ]]; then
             rm -r "${builddir}"
         fi
         mkdir -p "${builddir}"
         cd "${builddir}"
-
-        if [[ "$module" =~ "intel-oneapi" ]]; then
-            CXX=icpx
-        elif [[ "$module" =~ "intel" ]]; then
-            CXX=icpc
-        elif [[ "$module" =~ "llvm" ]] || [[ "$module" =~ "aocc" ]]; then
-            CXX=clang++
-        elif [[ "$module" =~ "gcc" ]] || [[ "$module" =~ "gnu" ]]; then
-            CXX=g++
-        else
-            exit 99
-        fi
 
         cmake \
             -B "${builddir}" \
@@ -64,7 +71,12 @@ for module in ${modules[@]}; do
             rm -r "${builddir}"
         fi
     done
+
+    if [[ "$HOST" == "osmium" ]] && [[ "$module" =~ "gcc-5" ]]; then
+        module unload "$cmakemod"
+    fi
+
     module unload ${module}
 done
 
-set +v
+#set +v
