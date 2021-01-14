@@ -11,17 +11,19 @@ SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 srcdir="${SCRIPTDIR}"
 builddir="${srcdir}/build"
 
-outputfile="${srcdir}"/results_"${HOSTNAME}".log
+outputfile="${srcdir}"/results_"${HOST}".log
 if [[ -f "${outputfile}" ]]; then
     rm "${outputfile}"
 fi
 
-if [[ "$HOSTNAME" == "dellman4" ]]; then
+if [[ "$HOST" == "dellman4" ]]; then
     modules=(intel/17.0.5 gnu/5.4.0 gnu/7.2.0 gnu/7.4.0 gnu/9.1.0 gnu/10.1.0)
-elif [[ "$HOSTNAME" == "coreman4" ]]; then
-    module=(llvm-11.0.0-gcc-7.5.0-lix6xtm intel-oneapi-compilers-2021.1.0-gcc-9.3.0-4zfjnvr)
+elif [[ "$HOST" == "coreman4" ]]; then
+    modules=(llvm-11.0.0-gcc-7.5.0-lix6xtm intel-oneapi-compilers-2021.1.0-gcc-9.3.0-4zfjnvr)
+elif [[ "$HOST" == "osmium"]]
+    modules=(aocc-2.3.0-gcc-10.2.0-3y5aifd)
 else
-    module=()
+    modules=()
 fi
 
 for module in ${modules[@]}; do
@@ -50,7 +52,7 @@ for module in ${modules[@]}; do
             "${srcdir}"
         #     -GNinja \
             # ninja
-        echo "hostname: ${HOSTNAME} module: ${module} std: ${std}" >> "${outputfile}"
+        echo "hostname: ${HOST} module: ${module} std: ${std}" >> "${outputfile}"
         set +e
         VERBOSE=1 make
         md5sum "${builddir}"/tr1.x >> "${outputfile}"
