@@ -14,6 +14,8 @@ if [[ -f "${outputfile}" ]]; then
     rm "${outputfile}"
 fi
 
+standards=(98 11 17)
+
 if [[ "$HOST" == "dellman4" ]]; then
     modules=(intel/17.0.5 gnu/5.4.0 gnu/7.2.0 gnu/7.4.0 gnu/9.1.0 gnu/10.1.0)
 elif [[ "$HOST" == "coreman4" ]]; then
@@ -45,7 +47,7 @@ for module in ${modules[@]}; do
         exit 99
     fi
 
-    for std in 98 11 17; do
+    for std in ${standards[@]}; do
         if [[ -d "${builddir}" ]]; then
             rm -r "${builddir}"
         fi
@@ -59,7 +61,7 @@ for module in ${modules[@]}; do
             "${srcdir}"
         echo "hostname: ${HOST} module: ${module} std: ${std} which: $(command -v $CXX)" >> "${outputfile}"
         set +e
-        make
+        make -k
         md5sum "${builddir}"/tr1.x >> "${outputfile}"
         md5sum "${builddir}"/normal.x >> "${outputfile}"
         "${builddir}"/tr1.x >> "${outputfile}"
