@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-
 set -v
 
-# module load ninja
-
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+HOST=$(hostname)
 
 srcdir="${SCRIPTDIR}"
 builddir="${srcdir}/build"
@@ -20,8 +18,8 @@ if [[ "$HOST" == "dellman4" ]]; then
     modules=(intel/17.0.5 gnu/5.4.0 gnu/7.2.0 gnu/7.4.0 gnu/9.1.0 gnu/10.1.0)
 elif [[ "$HOST" == "coreman4" ]]; then
     modules=(llvm-11.0.0-gcc-7.5.0-lix6xtm intel-oneapi-compilers-2021.1.0-gcc-9.3.0-4zfjnvr)
-elif [[ "$HOST" == "osmium"]]
-    modules=(aocc-2.3.0-gcc-10.2.0-3y5aifd)
+elif [[ "$HOST" == "osmium" ]]; then
+    modules=(gcc-9.2.0-gcc-8.4.0-fvtn24p gcc-9.3.0-gcc-10.1.0-vptvs3i llvm-11.0.1-gcc-10.2.0-hbzie7q aocc-2.3.0-gcc-10.2.0-3y5aifd)
 else
     modules=()
 fi
@@ -35,14 +33,16 @@ for module in ${modules[@]}; do
         mkdir -p "${builddir}"
         cd "${builddir}"
 
-        if test "$(command -v icpc)"; then
-            CXX=icpc
-        elif test "$(command -v icpx)"; then
+        if [[ "$module" =~ "intel-oneapi" ]]; then
             CXX=icpx
-        elif test "$(command -v clang++)"; then
+        elif [[ "$module" =~ "intel" ]]; then
+            CXX=icpc
+        elif [[ "$module" =~ "llvm" ]] || [[ "$module" =~ "aocc" ]]; then
             CXX=clang++
-        else
+        elif [[ "$module" =~ "gcc" ]] || [[ "$module" =~ "gnu" ]]; then
             CXX=g++
+        else
+            exit 99
         fi
 
         cmake \
@@ -50,11 +50,9 @@ for module in ${modules[@]}; do
             -DCMAKE_CXX_COMPILER="${CXX}" \
             -DCMAKE_CXX_FLAGS="-std=c++${std}" \
             "${srcdir}"
-        #     -GNinja \
-            # ninja
-        echo "hostname: ${HOST} module: ${module} std: ${std}" >> "${outputfile}"
+        echo "hostname: ${HOST} module: ${module} std: ${std} which: $(command -v $CXX)" >> "${outputfile}"
         set +e
-        VERBOSE=1 make
+        make
         md5sum "${builddir}"/tr1.x >> "${outputfile}"
         md5sum "${builddir}"/normal.x >> "${outputfile}"
         "${builddir}"/tr1.x >> "${outputfile}"
@@ -69,5 +67,4 @@ for module in ${modules[@]}; do
     module unload ${module}
 done
 
-# module unload ninja
 set +v
